@@ -1,98 +1,113 @@
 'use strict';
-var frontBuffer = document.getElementById('snake');
-var frontCtx = frontBuffer.getContext('2d');
-var backBuffer = document.createElement('canvas');
-backBuffer.width = frontBuffer.width;
-backBuffer.height = frontBuffer.height;
-var backCtx = backBuffer.getContext('2d');
 var oldTime = performance.now();
 
 let controller = new Controller();
 controller.attach();
 let input = controller.input;
 
-class Snake {
+
+class World {
     constructor() {
-        this.x = 18;
-        this.y = 18;
-        this.size = 16;
-        this.padding = 2;
-        this.tick = 0;
-        this.sections = [{x: this.x, y: this.y*2}, {x: this.x, y: this.y}];
+        this._actors = [];
+        this.canvas = document.createElement('canvas');
+        this.canvas.width = 902;
+        this.canvas.height = 542;
+        this.frontBuffer = this.canvas.getContext('2d');
+        let bb = document.createElement('canvas');
+        bb.width = this.canvas.width;
+        bb.height = this.canvas.height;
+        this.backBuffer = bb.getContext('2d');
+    }
+
+    install(id) {
+        let elem = document.getElementById(id);
+        elem.appendChild(this.canvas);
+    }
+
+    tick(newTime) {
+        var dt = newTime - oldTime;
+        oldTime = newTime;
+        this.update(dt);
+        this.render();
+        window.requestAnimationFrame((newTime)=>this.tick(newTime));
+    }
+
+    start() {
+        window.requestAnimationFrame((newTime)=>this.tick(newTime));
     }
 
     update(dt) {
-        let hasMoved = false;
-        this.tick++;
-        if (this.tick % 8 == 0) {
-            if (input.up) {
-                hasMoved = true;
-                this.y -= this.size + this.padding;
-            }
-            if (input.right) {
-                hasMoved = true;
-                this.x += this.size + this.padding;
-            }
-            if (input.left) {
-                hasMoved = true;
-                this.x -= this.size + this.padding;
-            }
-            if (input.down) {
-                hasMoved = true;
-                this.y += this.size + this.padding;
-            }
+        for (let actor of this._actors) {
+            actor.update(dt);
         }
-        if (hasMoved) {
+
+        // TODO: Spawn an apple periodically
+        // TODO: Grow the snake periodically
+        // TODO: Move the snake
+        // TODO: Determine if the snake has moved out-of-bounds (offscreen)
+        // TODO: Determine if the snake has eaten an apple
+        // TODO: Determine if the snake has eaten its tail
+        // TODO: [Extra Credit] Determine if the snake has run into an obstacle
+    }
+
+    render() {
+        this.backBuffer.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        for (let actor of this._actors) {
+            actor.render(this.backBuffer);
+        }
+        this.frontBuffer.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.frontBuffer.drawImage(this.backBuffer.canvas, 0, 0);
+    }
+}
+
+
+class Snake {
+    constructor() {
+        this.x = 10;
+        this.y = 10;
+        this.size = 16;
+        this.heading = {x: 0, y: 1};
+        this.padding = 2;
+        this.tick = 0;
+        this.sections = [{x: this.x, y: this.y + this.padding + this.size}, {x: this.x, y: this.y}];
+    }
+
+    update(dt) {
+        this.tick++;
+
+        if (input.up) {
+            this.heading.y = -1;
+            this.heading.x = 0;
+        } else if (input.down) {
+            this.heading.y = 1;
+            this.heading.x = 0;
+        } else if (input.right) {
+            this.heading.x = 1;
+            this.heading.y = 0;
+        } else if (input.left) {
+            this.heading.x = -1;
+            this.heading.y = 0;
+        }
+
+        if (this.tick % 8 == 0) {
+            this.y += (this.size + this.padding) * this.heading.y;
+            this.x += (this.size + this.padding) * this.heading.x;
             this.sections.push({x: this.x, y: this.y});
             this.sections.shift();
         }
     }
 
     render(ctx) {
-        // ctx.fillRect(this.x, this.y, this.size, this.size)
         for (let section of this.sections) {
             ctx.beginPath();
             ctx.arc(section.x, section.y, this.size/2, 0, 2 * Math.PI, false);
             ctx.fillStyle = 'green';
             ctx.fill();
-            // ctx.fillRect(section.x, section.y, this.size, this.size);
         }
     }
 }
 
-let snake = new Snake();
-
-
-function loop(newTime) {
-  var elapsedTime = newTime - oldTime;
-  oldTime = newTime;
-
-  update(elapsedTime);
-  render(elapsedTime);
-
-  frontCtx.clearRect(0, 0, backBuffer.width, backBuffer.height);
-  frontCtx.drawImage(backBuffer, 0, 0);
-
-  window.requestAnimationFrame(loop);
-}
-
-function update(elapsedTime) {
-
-    snake.update(elapsedTime);
-  // TODO: Spawn an apple periodically
-  // TODO: Grow the snake periodically
-  // TODO: Move the snake
-  // TODO: Determine if the snake has moved out-of-bounds (offscreen)
-  // TODO: Determine if the snake has eaten an apple
-  // TODO: Determine if the snake has eaten its tail
-  // TODO: [Extra Credit] Determine if the snake has run into an obstacle
-
-}
-
-function render(elapsedTime) {
-  backCtx.clearRect(0, 0, backBuffer.width, backBuffer.height);
-
-  snake.render(backCtx);
-}
-
-window.requestAnimationFrame(loop);
+let world = new World();
+world.install("gameContainer");
+world._actors.push(new Snake());
+world.start();

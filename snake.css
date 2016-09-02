@@ -7,3 +7,8 @@ canvas#snake {
   border: 1px solid #333;
   box-shadow: 0 4px 4px #777;
 }
+
+canvas {
+  border: 1px solid #333;
+  box-shadow: 0 4px 4px #777;
+}
