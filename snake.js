@@ -92,8 +92,54 @@ class Snake {
         if (this.tick % 8 == 0) {
             this.y += (this.size + this.padding) * this.heading.y;
             this.x += (this.size + this.padding) * this.heading.x;
-            this.sections.push({x: this.x, y: this.y});
+            this.sections.push({x: this.x, y: this.y, size: this.size});
             this.sections.shift();
+        }
+    }
+
+    render(ctx) {
+        for (let section of this.sections) {
+            ctx.beginPath();
+            ctx.arc(section.x, section.y, this.size/2, 0, 2 * Math.PI, false);
+            ctx.fillStyle = 'green';
+            ctx.fill();
+        }
+    }
+}
+
+class Foo {
+    constructor() {
+        this.ticks = 0;
+        this.arcpos = 0;
+        this.x = 400;
+        this.y = 400;
+        this.radius = 30;
+        this.clockwise = 1;
+        this.size = 6;
+        this.sections = [];
+    }
+
+    update(dt) {
+        this.ticks++;
+
+        if (this.ticks % 8 == 0) {
+            this.arcpos += this.clockwise/4;
+            let p = this.arcpos;
+
+            let x = Math.sin(p)*this.radius+this.x,
+                y = Math.cos(p)*this.radius+this.y;
+            this.sections.push({x: x, y: y});
+            if (this.sections.length > 7) this.sections.shift();
+            // ctx.fillRect(x, y, 6, 6);
+
+            if (Math.abs(this.arcpos) > Math.PI) {
+                x = Math.sin(p)*2*this.radius+this.x,
+                y = Math.cos(p)*2*this.radius+this.y;
+                this.clockwise *= -1;
+                this.arcpos += Math.PI * this.clockwise;
+                this.x = x;
+                this.y = y;
+            }
         }
     }
 
@@ -109,5 +155,6 @@ class Snake {
 
 let world = new World();
 world.install("gameContainer");
-world._actors.push(new Snake());
+// world._actors.push(new Snake());
+world._actors.push(new Foo());
 world.start();
