@@ -36,10 +36,27 @@ class World {
         window.requestAnimationFrame((newTime)=>this.tick(newTime));
     }
 
+    checkCollisions() {
+        let points = new Set();
+        for (let actor of this._actors) {
+            for (let section of actor.sections) {
+                if (points.has(section.x + ' ' + section.y) ||
+                    section.x < 0 || section.x >= this.canvas.width ||
+                    section.y < 0 || section.y >= this.canvas.height) {
+                        
+                        break;
+                    }
+                points.add(section.x + ' ' + section.y);
+            }
+        }
+    }
+
     update(dt) {
         for (let actor of this._actors) {
             actor.update(dt);
         }
+
+        this.checkCollisions();
 
         // TODO: Spawn an apple periodically
         // TODO: Grow the snake periodically
@@ -69,7 +86,8 @@ class Snake {
         this.heading = {x: 0, y: 1};
         this.padding = 2;
         this.tick = 0;
-        this.sections = [{x: this.x, y: this.y + this.padding + this.size}, {x: this.x, y: this.y}];
+        this.addSections = 20;
+        this.sections = [];
     }
 
     update(dt) {
@@ -93,7 +111,11 @@ class Snake {
             this.y += (this.size + this.padding) * this.heading.y;
             this.x += (this.size + this.padding) * this.heading.x;
             this.sections.push({x: this.x, y: this.y, size: this.size});
-            this.sections.shift();
+            if (this.addSections > 0) {
+                this.addSections--;
+            } else {
+                this.sections.shift();
+            }
         }
     }
 
@@ -120,7 +142,7 @@ class Foo {
     }
 
     update(dt) {
-        this.ticks++;
+        this.ticks+=4;
 
         if (this.ticks % 8 == 0) {
             this.arcpos += this.clockwise/4;
@@ -132,7 +154,7 @@ class Foo {
             if (this.sections.length > 7) this.sections.shift();
             // ctx.fillRect(x, y, 6, 6);
 
-            if (Math.abs(this.arcpos) > Math.PI) {
+            if (Math.abs(this.arcpos) > Math.PI*2*Math.random()&& Math.random()>.8) {
                 x = Math.sin(p)*2*this.radius+this.x,
                 y = Math.cos(p)*2*this.radius+this.y;
                 this.clockwise *= -1;
@@ -155,6 +177,6 @@ class Foo {
 
 let world = new World();
 world.install("gameContainer");
-// world._actors.push(new Snake());
-world._actors.push(new Foo());
+world._actors.push(new Snake());
+// world._actors.push(new Foo());
 world.start();
