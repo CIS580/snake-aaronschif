@@ -33,13 +33,13 @@ class World {
         this.update(dt);
         this.render();
         if (this.running) {
-            window.requestAnimationFrame((newTime)=>this.tick(newTime));
+            window.requestAnimationFrame(this.tick.bind(this));
         }
     }
 
     start() {
         this.running = true;
-        window.requestAnimationFrame((newTime)=>this.tick(newTime));
+        window.requestAnimationFrame(this.tick.bind(this));
     }
 
     checkCollisions() {
@@ -52,12 +52,8 @@ class World {
                 if (points[key].length !== 0) {
                         // this.endGame();
                         for (let otherActor of points[key]) {
-                            (actor.onCollision && (()=>{
-                                actor.onCollision({world: this, actor: otherActor})
-                            })());
-                            (otherActor.onCollision && (()=>{
-                                otherActor.onCollision({world: this, actor: actor})
-                            })());
+                            actor.onCollision && actor.onCollision({world: this, actor: otherActor});
+                            otherActor.onCollision && otherActor.onCollision({world: this, actor: actor});
                         }
                         break;
                     }
