@@ -43,16 +43,30 @@ class World {
 
     checkCollisions() {
         let points = {};
+        this._actors = this._actors.filter((e)=>{return e.remove !== true});
         for (let actor of this._actors) {
             for (let section of actor.sections) {
-                if (points.hasOwnProperty(section.x + ' ' + section.y) ||
-                    section.x < 0 || section.x >= this.canvas.width ||
-                    section.y < 0 || section.y >= this.canvas.height) {
-                        this.endGame();
-                        break;
-                    }
                 let key = section.x + ' ' + section.y;
                 points[key] = points[key] || [];
+                if (points[key].length !== 0) {
+                        // this.endGame();
+                        for (let otherActor of points[key]) {
+                            (actor.onCollision && (()=>{
+                                actor.onCollision({world: this, actor: otherActor})
+                            })());
+                            (otherActor.onCollision && (()=>{
+                                otherActor.onCollision({world: this, actor: actor})
+                            })());
+                        }
+                        break;
+                    }
+
+                if (section.x < 0 || section.x >= this.canvas.width ||
+                    section.y < 0 || section.y >= this.canvas.height) {
+                    (actor.onOutOfWorld || (()=>{}))({world: world});
+                    break;
+                }
+
                 points[key].push(actor);
             }
         }
@@ -64,6 +78,20 @@ class World {
         }
 
         this.checkCollisions();
+
+        if (Math.random() < .01) {
+            // let x = 10 + Math.floor(this.canvas.width / 18) * Math.floor(Math.random() * 18) - 7,
+            //     y = 10 + Math.floor(this.canvas.height / 18) * Math.floor(Math.random() * 18) - 7;
+            let x = 10 + Math.floor(Math.floor(this.canvas.width / 18) * Math.random()) * 18,
+                y = 10 + Math.floor(Math.floor(this.canvas.height / 18) * Math.random()) * 18;
+            // console.log(this.canvas.width);
+            // console.log({x: x, y: y});
+                // y = 10 + Math.floor(this.canvas.height / 18) * 18 - 7;
+            // let x = 2 + ,
+            //     y = 20;
+
+            this._actors.push(new Apple({x: x, y: y, bad:Math.random()<.1}));
+        }
 
         // TODO: Spawn an apple periodically
         // TODO: Grow the snake periodically
@@ -79,11 +107,15 @@ class World {
         for (let actor of this._actors) {
             actor.render(this.backBuffer);
         }
+        this.backBuffer.fillStyle = 'rgba(255, 0, 0, 0.8)';
+        this.backBuffer.font = '20px badaboom_bbregular'
+        this.backBuffer.fillText(this.points + " points", 700, 20);
         this.frontBuffer.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.frontBuffer.drawImage(this.backBuffer.canvas, 0, 0);
     }
 
     endGame() {
+        if (this.running === false) return;
         this.running = false;
         window.requestAnimationFrame(()=>{
             // this.frontBuffer.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -96,6 +128,31 @@ class World {
     }
 }
 
+class Apple {
+    constructor(args) {
+        let {x, y, bad=false} = args;
+        this.remove = false;
+        this.size = 4;
+        this.bad = bad;
+        this.sections = [{x: x, y: y, size: 4}];
+    }
+
+    update(dt) {
+
+    }
+
+    render(ctx) {
+        let section = this.sections[0];
+        ctx.beginPath();
+        ctx.arc(section.x, section.y, this.size/2, 0, 2 * Math.PI, false);
+        if (this.bad) {
+            ctx.fillStyle = 'black';
+        } else {
+            ctx.fillStyle = 'red';
+        }
+        ctx.fill();
+    }
+}
 
 class Snake {
     constructor() {
@@ -105,7 +162,7 @@ class Snake {
         this.heading = {x: 0, y: 1};
         this.padding = 2;
         this.tick = 0;
-        this.addSections = 20;
+        this.addSections = 2;
         this.sections = [];
     }
 
@@ -136,6 +193,26 @@ class Snake {
                 this.sections.shift();
             }
         }
+    }
+
+    onCollision(args) {
+        let {world, actor} = args;
+        if (actor.constructor === Apple) {
+            this.addSections ++;
+            actor.remove = true;
+            if (actor.bad) {
+                world.endGame();
+            } else {
+                world.points++;
+            }
+            return;
+        }
+        world.endGame();
+    }
+
+    onOutOfWorld(args) {
+        let {world} = args;
+        world.endGame();
     }
 
     render(ctx) {
