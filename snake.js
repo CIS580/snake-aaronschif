@@ -17,6 +17,8 @@ class World {
         bb.width = this.canvas.width;
         bb.height = this.canvas.height;
         this.backBuffer = bb.getContext('2d');
+        this.running = false;
+        this.points = 0;
     }
 
     install(id) {
@@ -29,24 +31,29 @@ class World {
         oldTime = newTime;
         this.update(dt);
         this.render();
-        window.requestAnimationFrame((newTime)=>this.tick(newTime));
+        if (this.running) {
+            window.requestAnimationFrame((newTime)=>this.tick(newTime));
+        }
     }
 
     start() {
+        this.running = true;
         window.requestAnimationFrame((newTime)=>this.tick(newTime));
     }
 
     checkCollisions() {
-        let points = new Set();
+        let points = {};
         for (let actor of this._actors) {
             for (let section of actor.sections) {
-                if (points.has(section.x + ' ' + section.y) ||
+                if (points.hasOwnProperty(section.x + ' ' + section.y) ||
                     section.x < 0 || section.x >= this.canvas.width ||
                     section.y < 0 || section.y >= this.canvas.height) {
-                        
+                        this.endGame();
                         break;
                     }
-                points.add(section.x + ' ' + section.y);
+                let key = section.x + ' ' + section.y;
+                points[key] = points[key] || [];
+                points[key].push(actor);
             }
         }
     }
@@ -75,6 +82,18 @@ class World {
         this.frontBuffer.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.frontBuffer.drawImage(this.backBuffer.canvas, 0, 0);
     }
+
+    endGame() {
+        this.running = false;
+        window.requestAnimationFrame(()=>{
+            // this.frontBuffer.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.backBuffer.fillStyle = 'rgba(255, 0, 0, 0.3)';
+            this.backBuffer.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.backBuffer.font = '150px  badaboom_bbregular'
+            this.backBuffer.fillText("Game over.", 10, 200);
+            this.frontBuffer.drawImage(this.backBuffer.canvas, 0, 0);
+        });
+    }
 }
 
 
@@ -93,18 +112,18 @@ class Snake {
     update(dt) {
         this.tick++;
 
-        if (input.up) {
+        if (input.up && this.heading.y !== 1) {
             this.heading.y = -1;
             this.heading.x = 0;
-        } else if (input.down) {
+        } else if (input.down && this.heading.y !== -1) {
             this.heading.y = 1;
             this.heading.x = 0;
-        } else if (input.right) {
+        } else if (input.right && this.heading.x !== -1) {
+            this.heading.y = 0;
             this.heading.x = 1;
+        } else if (input.left && this.heading.x !== 1) {
             this.heading.y = 0;
-        } else if (input.left) {
             this.heading.x = -1;
-            this.heading.y = 0;
         }
 
         if (this.tick % 8 == 0) {
