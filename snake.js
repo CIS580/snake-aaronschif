@@ -19,6 +19,7 @@ class World {
         this.backBuffer = bb.getContext('2d');
         this.running = false;
         this.points = 0;
+        this.highScore = Number(window.localStorage.highScore) || 0;
     }
 
     install(id) {
@@ -93,13 +94,8 @@ class World {
             this._actors.push(new Apple({x: x, y: y, bad:Math.random()<.1}));
         }
 
-        // TODO: Spawn an apple periodically
-        // TODO: Grow the snake periodically
-        // TODO: Move the snake
-        // TODO: Determine if the snake has moved out-of-bounds (offscreen)
-        // TODO: Determine if the snake has eaten an apple
-        // TODO: Determine if the snake has eaten its tail
-        // TODO: [Extra Credit] Determine if the snake has run into an obstacle
+        this.highScore = Math.max(this.points, this.highScore);
+        window.localStorage.setItem('highScore', this.highScore);
     }
 
     render() {
@@ -109,7 +105,7 @@ class World {
         }
         this.backBuffer.fillStyle = 'rgba(255, 0, 0, 0.8)';
         this.backBuffer.font = '20px badaboom_bbregular'
-        this.backBuffer.fillText(this.points + " points", 700, 20);
+        this.backBuffer.fillText(this.points + " points / high score : " + this.highScore, 700, 20);
         this.frontBuffer.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.frontBuffer.drawImage(this.backBuffer.canvas, 0, 0);
     }
